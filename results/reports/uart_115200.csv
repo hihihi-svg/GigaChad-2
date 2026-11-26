@@ -1,0 +1,5 @@
+interface,port,baud_setting,packet_size_samples,trial,payload_bytes,send_seconds,throughput_Bps,packets_sent,frames_ok,samples_received,bad_crc,seq_gaps,duplicates,completion_reason
+Native USB,COM9,115200,1024,1,32000,2.8470789999701083,11239.589769140923,16,17,16000,0,0,0,end
+Native USB,COM9,115200,320,1,32000,2.841077100019902,11263.33389536519,50,51,16000,0,0,0,end
+Native USB,COM9,115200,64,1,32000,3.050068600103259,10491.56730406544,250,251,16000,0,0,0,end
+Native USB,COM9,115200,8,1,32000,5.010824599768966,6386.174443518821,2000,2001,16000,0,0,0,end
