@@ -52,18 +52,22 @@ ESP32 summary:
 Bad CRC packets: 0
 
 3. FEATURE PAYLOAD SIZE
-Each frame contains 13 MFCC coefficients.
+
+Each feature frame contains 13 MFCC coefficients.
 Each coefficient is a 32-bit (4-byte) float.
 
 Raw feature-value payload:
+
 998 frames x 13 coefficients/frame x 4 bytes/coefficient
 = 51,896 bytes
 
 This is the raw feature-value payload only. It excludes serial protocol
 headers, frame metadata, and other transport overhead.
 
-The actual bytes received from the ESP32 over USB were measured as
-140,070 bytes, including feature data and protocol-related data.
+The actual total number of bytes transferred over the serial connection
+was not independently verified. The existing software counter may count
+some received data more than once, so its reported value is not used as
+a reliable wire-byte measurement.
 
 4. COMPARISON WITH THE 40-DIMENSION LOG-MEL CONFIGURATION
 Earlier log-mel benchmark:
