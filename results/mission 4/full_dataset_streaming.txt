@@ -1,0 +1,11 @@
+Mission 4 – Task 2: Full Dataset Streaming and Loss Accounting
+
+All 144 audio clips from Team 11 were concatenated in their original order and streamed to the ESP32-S3 at real-time speed (1.0×) using 16 kHz sampling, int16 encoding, 320 samples per packet, and 40 log-mel features.
+
+The input contained 2,304,000 samples, corresponding to 144 seconds of audio and 4,608,000 bytes. The expected packet count was 7,200, and the board successfully accepted all 7,200 data packets.
+
+The continuous stream produced 7,199 feature frames. All 7,199 frames were received, with zero lost feature frames, zero sequence gaps, and zero CRC errors. The ESP32 stored the complete 4,608,000-byte audio payload in PSRAM without overflow.
+
+The average feature computation time was 1,622 µs, and the maximum was 1,805 µs.
+
+Conclusion: The ESP32-S3 successfully processed and stored the complete 144-clip dataset at real-time speed without packet loss or feature-frame loss.

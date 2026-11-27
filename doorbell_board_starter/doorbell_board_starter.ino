@@ -59,6 +59,9 @@ static void freeStore() { free(storeBuf); storeBuf = nullptr; storeCap = storeLe
 static FeaturePipeline feat;
 static float *fbuf = nullptr; static int fcount = 0;   // window being filled
 static float *fout = nullptr;
+// Original audio timeline, including samples from missing packets
+static uint32_t timelineSamples = 0;
+static uint32_t lastPacketSamples = 0;
 struct Stats {
   uint32_t framesOk, badCrc, badLen, seqGaps, dup, samples, storeFull, featSent;
   uint32_t maxUs, uartOverflow; uint64_t sumUs; uint32_t t0, tLast; int32_t lastSeq;
@@ -89,7 +92,7 @@ static void pushSamples(Stream &s, const uint8_t *p, size_t nbytes) {
       feat.compute(fbuf, fout);
       uint32_t us = micros() - t;
       st.maxUs = max(st.maxUs, us); st.sumUs += us;
-      uint32_t first = st.samples + i + 1 - feat.c.win;   // index of the frame's first sample
+      uint32_t first = timelineSamples + i + 1 - feat.c.win;  // index of the frame's first sample
       uint32_t frameNo = st.featSent++;
       static uint8_t pay[8 + 4 * 128];                     // first_sample, compute_us, features
       memcpy(pay, &first, 4); memcpy(pay + 4, &us, 4); memcpy(pay + 8, fout, 4 * feat.outSize());
@@ -99,6 +102,7 @@ static void pushSamples(Stream &s, const uint8_t *p, size_t nbytes) {
     }
   }
   st.samples += n;
+  timelineSamples += n;
 }
 
 static void finishStream(Stream &s, const char *why) {
@@ -160,7 +164,12 @@ static void runStream(Stream &s, const char *line) {
     }
     storeCap = want; strcpy(storeWhere, where);
   }
-  memset(&st, 0, sizeof st); st.lastSeq = -1; uartErrors = 0;
+  memset(&st, 0, sizeof st);
+  st.lastSeq = -1;
+  timelineSamples = 0;
+  lastPacketSamples = 0;
+  fcount = 0;
+  uartErrors = 0;
   s.printf("READY fs=%d fmt=%s win=%d hop=%d nfft=%d out=%d feat=%d store=%s cap=%u\n",
            c.fs, fmtName, c.win, c.hop, c.nfft, feat.outSize(), (int)featOn, storeWhere, (unsigned)storeCap);
 
@@ -191,17 +200,48 @@ static void runStream(Stream &s, const char *line) {
     uint16_t len; uint32_t seq, crc; memcpy(&len, buf + 7, 2); memcpy(&seq, buf + 3, 4); memcpy(&crc, buf + 9 + len, 4);
     char type = buf[2]; have = 0;
     if (crc32(buf + 2, 7 + len) != crc) { st.badCrc++; continue; }
-    if ((int32_t)seq <= st.lastSeq) { st.dup++; continue; }
-    if (st.lastSeq >= 0 && (int32_t)seq != st.lastSeq + 1) st.seqGaps += seq - st.lastSeq - 1;
-    st.lastSeq = seq; st.framesOk++; st.tLast = millis();
-    if (type == 'E') { finishStream(s, "end"); return; }
-    if (type != 'D') continue;
-    if (storeBuf) {
-      size_t room = storeCap - storeLen, k = len < room ? len : room;
-      memcpy(storeBuf + storeLen, buf + 9, k); storeLen += k;
-      if (k < len) st.storeFull++;
-    }
-    pushSamples(s, buf + 9, len);
+    if ((int32_t)seq <= st.lastSeq) {
+  st.dup++;
+  continue;
+}
+
+uint32_t missingPackets = 0;
+
+if (st.lastSeq >= 0 && seq != (uint32_t)(st.lastSeq + 1)) {
+  missingPackets = seq - st.lastSeq - 1;
+  st.seqGaps += missingPackets;
+}
+
+st.lastSeq = seq;
+st.framesOk++;
+st.tLast = millis();
+
+if (type == 'E') {
+  finishStream(s, "end");
+  return;
+}
+
+if (type != 'D') continue;
+
+// Restore the original sample timeline after packet loss.
+// Discard incomplete feature windows so they cannot cross a gap.
+if (missingPackets > 0 && lastPacketSamples > 0) {
+  timelineSamples += missingPackets * lastPacketSamples;
+  fcount = 0;
+}
+
+if (storeBuf) {
+  size_t room = storeCap - storeLen;
+  size_t k = len < room ? len : room;
+  memcpy(storeBuf + storeLen, buf + 9, k);
+  storeLen += k;
+
+  if (k < len) st.storeFull++;
+}
+
+pushSamples(s, buf + 9, len);
+lastPacketSamples = len / fmtBytes;
+    
   }
 }
 

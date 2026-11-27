@@ -1,0 +1,23 @@
+# Mission 4 – Task 3: Intentional Packet-Loss Detection
+
+Three data packets with sequence numbers 10, 11, and 200 were intentionally skipped during the 144-clip streaming experiment.
+
+The ESP32 successfully detected all three missing packets. Out of 7,200 expected data packets, 7,197 were transmitted. The board reported exactly three sequence gaps, zero CRC errors, and zero duplicate packets.
+
+Each packet contained 320 audio samples. Therefore, the total missing samples were:
+
+\[
+3 \times 320 = 960
+\]
+
+The board received:
+
+\[
+2,304,000 - 960 = 2,303,040
+\]
+
+samples, matching the reported sample count.
+
+The feature extraction pipeline produced 7,196 received feature frames, with three missing feature frames.
+
+**Conclusion:** Sequence-number-based accounting correctly detected the three intentionally skipped packets. The experiment demonstrates that packet loss can be identified without relying solely on the total number of received samples.
