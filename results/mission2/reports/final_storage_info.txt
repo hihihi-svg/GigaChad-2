@@ -1,0 +1,7 @@
+cpu_mhz=240
+psram_size=8388608
+flash_chip=16777216
+fs_total=9830400
+fs_used=4759552
+stored=0
+where=none

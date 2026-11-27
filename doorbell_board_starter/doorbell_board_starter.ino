@@ -28,6 +28,7 @@
 #include <LittleFS.h>
 #include "esp_heap_caps.h"
 #include "features.h"
+#include "esp_partition.h"
 
 static const uint32_t UART_BAUD_DEFAULT = 921600;
 static const char *REC_PATH = "/rec.bin";
@@ -221,32 +222,185 @@ static void cmdInfo(Stream &s) {
            (unsigned)storeLen, storeWhere);
 }
 
-static void cmdSave(Stream &s) {
-  // TODO Mission 2: write storeBuf (storeLen bytes) to the file REC_PATH with LittleFS,
-  // so the recording survives a power cut. Reply  OK SAVE n=<bytes> us=<time taken> crc=<crc32 hex>
-  // Clues: LittleFS.open(REC_PATH, "w"), f.write(ptr, len) in chunks, f.close(), crc32(storeBuf, storeLen).
-  // Before you write: does INFO's fs_total leave room? If not, which Tools settings decide it?
-  s.printf("ERR SAVE not written yet\n");
+
+
+static void cmdSave(Stream &s, const char *clipId) {
+
+    // 1. Check filesystem
+    if (!fsOk) {
+        s.printf("ERR in filesystem\n");
+        return;
+    }
+
+    // 2. Check recording buffer
+    if (storeBuf == nullptr || storeLen == 0) {
+        s.printf("ERR in recording\n");
+        return;
+    }
+
+    // 3. Validate clip ID
+    char *endPtr;
+    long id = strtol(clipId, &endPtr, 10);
+
+    if (clipId == nullptr || clipId[0] == '\0' ||
+        *endPtr != '\0' || id < 0 || id >= 144) {
+        s.printf("ERR invalid clip ID\n");
+        return;
+    }
+
+    // 4. Generate unique filename
+    char path[32];
+    snprintf(path, sizeof(path), "/rec_%03ld.bin", id);
+
+    // 5. Start timer
+    uint32_t start_us = micros();
+
+    // 6. Open file for writing
+    File f = LittleFS.open(path, "w");
+
+    if (!f) {
+        s.printf("ERR file open failed\n");
+        return;
+    }
+
+    // 7. Write recording in chunks
+    const size_t CHUNK_SIZE = 1024;
+    size_t offset = 0;
+    bool writeOk = true;
+
+    while (offset < storeLen) {
+        size_t remaining = storeLen - offset;
+        size_t chunk = (remaining < CHUNK_SIZE)
+                       ? remaining : CHUNK_SIZE;
+
+        size_t written = f.write(storeBuf + offset, chunk);
+
+        if (written != chunk) {
+            writeOk = false;
+            break;
+        }
+
+        offset += written;
+    }
+
+    // 8. Close file
+    f.close();
+
+    if (!writeOk) {
+        LittleFS.remove(path);
+        s.printf("ERR SAVE write failed\n");
+        return;
+    }
+
+    // 9. Verify saved file size
+    File check = LittleFS.open(path, "r");
+
+    bool sizeOk = check && (check.size() == storeLen);
+
+    check.close();
+
+    if (!sizeOk) {
+        LittleFS.remove(path);
+        s.printf("ERR SAVE size mismatch\n");
+        return;
+    }
+
+    // 10. Calculate CRC32
+    uint32_t checksum = crc32(storeBuf, storeLen);
+
+    // 11. Calculate elapsed time
+    uint32_t elapsed_us = micros() - start_us;
+
+    // 12. Report success
+    s.printf("OK SAVE id=%ld n=%u us=%u crc=%08x\n",
+             id,
+             (unsigned)storeLen,
+             (unsigned)elapsed_us,
+             (unsigned)checksum);
 }
 
+
+
+
 static void cmdDump(Stream &s, const char *where, bool crcOnly) {
-  if (!strcmp(where, "sram") || !strcmp(where, "psram")) {
-    size_t n = strcmp(where, storeWhere) ? 0 : storeLen;
-    if (crcOnly) s.printf("CRC where=%s n=%u crc=%08x\n", where, (unsigned)n, (unsigned)(n ? crc32(storeBuf, n) : 0));
-    else { s.printf("DATA %u\n", (unsigned)n); writeAll(s, storeBuf, n); }
-    return;
-  }
-  if (!strcmp(where, "flash")) {
-    if (!fsOk || !LittleFS.exists(REC_PATH)) { s.printf(crcOnly ? "CRC where=flash n=0 crc=00000000\n" : "DATA 0\n"); return; }
-    File f = LittleFS.open(REC_PATH, "r"); size_t len = f.size(); uint32_t c = 0xFFFFFFFFu; static uint8_t ch[4096];
-    if (!crcOnly) s.printf("DATA %u\n", (unsigned)len);
-    while (f.available()) { size_t r = f.read(ch, sizeof ch); if (crcOnly) c = crcRaw(c, ch, r); else writeAll(s, ch, r); }
+
+    // 1. Check SRAM and PSRAM recordings
+    if (!strcmp(where, "sram") || !strcmp(where, "psram")) {
+        size_t n = strcmp(where, storeWhere) ? 0 : storeLen;
+        if (crcOnly) {
+            uint32_t checksum = n ? crc32(storeBuf, n) : 0;
+            s.printf("CRC where=%s n=%u crc=%08x\n",
+                     where, (unsigned)n, (unsigned)checksum);
+        }
+        else {
+            s.printf("DATA %u\n", (unsigned)n);
+            writeAll(s, storeBuf, n);
+        }
+        return;
+    }
+    // 2. Support the old single-file recording
+    char path[32];
+    if (!strcmp(where, "flash")) {
+        strcpy(path, REC_PATH);
+    }
+    else {
+        // 3. Validate clip ID
+        char *endPtr;
+        long id = strtol(where, &endPtr, 10);
+        if (where[0] == '\0' || *endPtr != '\0' ||
+            id < 0 || id >= 144) {
+            s.printf("ERR invalid location or clip ID\n");
+            return;
+        }
+        // 4. Generate filename
+        snprintf(path, sizeof(path), "/rec_%03ld.bin", id);
+    }
+    // 5. Check filesystem
+    if (!fsOk) {
+        s.printf("ERR filesystem unavailable\n");
+        return;
+    }
+    // 6. Check whether file exists
+    if (!LittleFS.exists(path)) {
+        s.printf("ERR file not found: %s\n", path);
+        return;
+    }
+    // 7. Open recording
+    File f = LittleFS.open(path, "r");
+    if (!f) {
+        s.printf("ERR file open failed\n");
+        return;
+    }
+    size_t len = f.size();
+    // 8. Calculate CRC or dump raw data
+    uint32_t checksum = 0xFFFFFFFFu;
+    static uint8_t buffer[4096];
+    if (!crcOnly) {
+        s.printf("DATA %u\n", (unsigned)len);
+    }
+    while (f.available()) {
+        size_t r = f.read(buffer, sizeof(buffer));
+        if (r == 0) {
+            break;
+        }
+        if (crcOnly) {
+            checksum = crcRaw(checksum, buffer, r);
+        }
+        else {
+            writeAll(s, buffer, r);
+        }
+    }
     f.close();
-    if (crcOnly) s.printf("CRC where=flash n=%u crc=%08x\n", (unsigned)len, (unsigned)~c);
-    return;
-  }
-  s.printf("ERR where must be sram, psram or flash\n");
+
+    // 9. Print CRC result
+    if (crcOnly) {
+        checksum = ~checksum;
+
+        s.printf("CRC where=%s n=%u crc=%08x\n",
+                 where, (unsigned)len, (unsigned)checksum);
+    }
 }
+
 
 static void handle(Stream &s, char *line) {
   char cmd[12] = {0}, a[16] = {0};
@@ -262,7 +416,7 @@ static void handle(Stream &s, char *line) {
 #endif
   }
   else if (!strcmp(cmd, "STREAM")) runStream(s, line);
-  else if (!strcmp(cmd, "SAVE")) cmdSave(s);
+  else if (!strcmp(cmd, "SAVE")) cmdSave(s, a);
   else if (!strcmp(cmd, "DUMP")) cmdDump(s, a, false);
   else if (!strcmp(cmd, "CRC")) cmdDump(s, a, true);
   else if (!strcmp(cmd, "FREE")) { freeStore(); s.printf("OK FREE\n"); }
@@ -289,6 +443,21 @@ void setup() {
   Serial0.onReceiveError([](hardwareSerial_error_t) { uartErrors++; });
 #endif
   fsOk = LittleFS.begin(true);
+  const esp_partition_t *part = esp_partition_find_first(
+    ESP_PARTITION_TYPE_DATA,
+    ESP_PARTITION_SUBTYPE_DATA_SPIFFS,
+    "spiffs"
+);
+
+if (part) {
+    Serial.printf("SPIFFS partition FOUND: address=0x%08x size=%u\n",
+                  part->address, part->size);
+} else {
+    Serial.println("SPIFFS partition NOT FOUND");
+}
+
+Serial.printf("LittleFS mount: %s\n", fsOk ? "SUCCESS" : "FAILED");
+  Serial.printf("LittleFS mount: %s\n", fsOk ? "SUCCESS" : "FAILED");
 }
 
 void loop() {
