@@ -157,7 +157,13 @@ class Board:
         ready = _kv(rep)
         dim = ready.get("out", mfcc or mels)
 
-        got = {"frames": {}, "summary": None, "bad_crc": 0, "arrive": {}}
+        got = {
+    "frames": {},
+    "summary": None,
+    "bad_crc": 0,
+    "arrive": {},
+    "bytes_received": 0
+}
         stop = threading.Event()
 
         def reader():
@@ -166,6 +172,8 @@ class Board:
                 chunk = self.ser.read(self.ser.in_waiting or 1)
                 if not chunk:
                     continue
+
+                got["bytes_received"] += len(chunk)
                 buf += chunk
                 while True:
                     i = buf.find(_DOWN)
@@ -186,6 +194,7 @@ class Board:
                     if zlib.crc32(body) != crc:
                         got["bad_crc"] += 1
                         continue
+                    got["bytes_received"] += len(body)  
                     pl = body[7:]
                     if ftype == b"F":
                         first, us = struct.unpack_from("<II", pl, 0)
@@ -228,7 +237,10 @@ class Board:
         return dict(
             features=feats, frame_numbers=np.array(nums), first_sample=first, compute_us=us, lag_s=lag,
             expected_features=expected, lost_features=expected - len(nums), bad_crc_back=got["bad_crc"],
-            packets_sent=seq - len(skip), bytes_sent=len(payload), send_seconds=t_sent,
+            packets_sent=seq - len(skip),
+            bytes_sent=len(payload),
+            bytes_received=got["bytes_received"],
+            send_seconds=t_sent,
             audio_seconds=n_samples / fs, board=got["summary"], ready=ready,
         )
 

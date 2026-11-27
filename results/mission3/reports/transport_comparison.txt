@@ -1,0 +1,33 @@
+MISSION 3 - USB AND UART COMPARISON
+
+Configuration:
+Sampling rate: 16 kHz
+Window: 30 ms (480 samples)
+Hop: 20 ms (320 samples)
+FFT size: 512
+Mel bands: 40
+Streaming duration: 10 seconds
+Streaming speed: 1.0
+Baud rate: 921600
+
+USB (COM8):
+Expected frames: 499
+Received frames: 16
+Lost frames: 483
+Average compute time: 1860070.5 us
+Maximum lag: 29.506545 seconds
+Bad CRC: 0
+
+UART (COM9):
+Expected frames: 499
+Received frames: 16
+Lost frames: 483
+Average compute time: 1860064.81 us
+Maximum lag: 29.506614 seconds
+Bad CRC: 0
+
+Conclusion:
+Both interfaces produced nearly identical results.
+The ESP32-S3 could not maintain real-time feature extraction.
+The direct DFT implementation is the primary performance bottleneck.
+Optimising the FFT implementation is necessary.

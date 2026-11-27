@@ -1,0 +1,21 @@
+MISSION 3 - USB vs UART COMPARISON
+Implementation: Optimised Radix-2 FFT
+Baud rate: 921600
+Audio duration: 10 seconds
+Features: ON
+Speed: 1.0
+
+                 USB (COM8)       UART (COM9)
+Average compute  1619.41 us       1625.38 us
+Maximum compute  1802 us          1800 us
+Received frames  499              499
+Lost frames      0                0
+Average lag      0.016142 s       0.022227 s
+Maximum lag      0.017996 s       0.023618 s
+Transmission     10.004 s         10.008 s
+Bad CRC          0                0
+
+Conclusion:
+Both transports successfully support real-time feature
+extraction. USB exhibits slightly lower average lag,
+while computation time is nearly identical.

@@ -1,0 +1,33 @@
+MISSION 3 - FFT NUMERICAL ACCURACY
+
+Implementation:
+Radix-2 Cooley-Tukey FFT
+
+Configuration:
+Sampling frequency: 16000 Hz
+Window: 480 samples (30 ms)
+Hop: 320 samples (20 ms)
+FFT size: 512
+Mel filters: 40
+Audio duration: 10 seconds
+
+Reference:
+NumPy FFT implementation
+
+ESP32:
+Optimised radix-2 FFT implementation
+
+Results:
+Expected frames: 499
+Received frames: 499
+Lost frames: 0
+
+Maximum absolute error: 0.0004358889 dB
+Mean absolute error: 0.0002649556 dB
+Allowed tolerance: 0.05 dB
+
+Conclusion:
+The optimised FFT implementation satisfies the
+required numerical accuracy tolerance.
+
+Status: PASS

@@ -1,0 +1,101 @@
+MISSION 3 - TASK 6: MFCC BENCHMARK
+Team: 11
+Board: ESP32-S3-DevKitC-1
+Transport: USB (COM8)
+Baud rate: 921600
+
+1. CONFIGURATION
+Sampling frequency: 16,000 Hz
+Audio duration: 10 seconds
+Window length: 25 ms (400 samples)
+Hop length: 10 ms (160 samples)
+FFT size: 512
+Mel filters: 40
+MFCC coefficients: 13
+Feature extraction: Enabled
+Streaming speed used in this run: 1.0
+Input format: int16
+Samples per packet: 320
+
+2. BENCHMARK RESULTS
+Expected feature frames: 998
+Received feature frames: 998
+Lost feature frames: 0
+Audio bytes sent to board: 320,000 bytes
+Bytes received from ESP32: 140,070 bytes
+Packets sent: 500
+Transmission time: 10.003 seconds
+
+Average feature computation time: 1,651.08 us/frame
+Maximum feature computation time: 1,824 us/frame
+Minimum feature computation time: 1,643 us/frame
+Average streaming lag: 0.016939 seconds
+Maximum streaming lag: 0.022317 seconds
+
+ESP32 summary:
+  why: end
+  frames_ok: 501
+  bad_crc: 0
+  bad_len: 0
+  seq_gaps: 0
+  dup: 0
+  samples: 160000
+  stored: 0
+  where: none
+  store_full: 0
+  features: 998
+  max_us: 1830
+  avg_us: 1651
+  uart_errors: 0
+  ms: 9986
+
+Bad CRC packets: 0
+
+3. FEATURE PAYLOAD SIZE
+Each frame contains 13 MFCC coefficients.
+Each coefficient is a 32-bit (4-byte) float.
+
+Raw feature-value payload:
+998 frames x 13 coefficients/frame x 4 bytes/coefficient
+= 51,896 bytes
+
+This is the raw feature-value payload only. It excludes serial protocol
+headers, frame metadata, and other transport overhead.
+
+The actual bytes received from the ESP32 over USB were measured as
+140,070 bytes, including feature data and protocol-related data.
+
+4. COMPARISON WITH THE 40-DIMENSION LOG-MEL CONFIGURATION
+Earlier log-mel benchmark:
+  Window: 30 ms (480 samples)
+  Hop: 20 ms (320 samples)
+  FFT size: 512
+  Output: 40 log-mel values/frame
+  Frames: 499
+  Average compute time: 1,619.41 us/frame
+  Raw feature-value payload: 499 x 40 x 4 = 79,840 bytes
+
+MFCC benchmark:
+  Window: 25 ms (400 samples)
+  Hop: 10 ms (160 samples)
+  FFT size: 512
+  Output: 13 MFCC values/frame
+  Frames: 998
+  Average compute time: 1,651.08 us/frame
+  Raw feature-value payload: 998 x 13 x 4 = 51,896 bytes
+
+The MFCC configuration produces approximately twice as many frames,
+but average computation time per frame is only slightly higher.
+Despite the higher frame count, the raw feature-value payload is smaller
+because each frame contains 13 values instead of 40.
+
+5. CONCLUSION
+The ESP32 successfully generated all 998 MFCC frames in this run.
+There were no lost feature frames, CRC errors, malformed packets, or
+sequence gaps. Average feature computation time was 1,651.08
+microseconds per frame, with a maximum of 1,824 microseconds.
+
+IMPORTANT COMPARISON NOTE
+This benchmark used streaming speed=1.0, confirming successful real-time
+MFCC extraction. All 998 expected feature frames were received without
+loss, CRC errors, malformed packets, or sequence gaps.

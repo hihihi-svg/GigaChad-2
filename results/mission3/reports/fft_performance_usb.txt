@@ -1,0 +1,38 @@
+MISSION 3 - FFT PERFORMANCE BENCHMARK (USB)
+
+Board: ESP32-S3
+Transport: USB (COM8)
+Baud rate: 921600
+Audio duration: 10 seconds
+Sampling rate: 16000 Hz
+Window: 480 samples
+Hop: 320 samples
+FFT size: 512
+Mel filters: 40
+Speed: 1.0 (real-time)
+Features: ON
+
+BEFORE OPTIMISATION (Direct DFT)
+Average compute time: 1863401.31 us
+Maximum compute time: 1911593 us
+Received frames: 16
+Lost frames: 483
+
+AFTER OPTIMISATION (Radix-2 FFT)
+Average compute time: 1619.41 us
+Maximum compute time: 1802 us
+Minimum compute time: 1616 us
+Expected frames: 499
+Received frames: 499
+Lost frames: 0
+Average lag: 0.016142 seconds
+Maximum lag: 0.017996 seconds
+Transmission time: 10.004 seconds
+Bad CRC: 0
+UART errors: 0
+
+Speed improvement: Approximately 1150x
+
+Conclusion:
+The optimised radix-2 FFT achieves real-time feature
+extraction over USB at speed=1.0 with zero lost frames.

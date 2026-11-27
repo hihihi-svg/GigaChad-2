@@ -1,0 +1,52 @@
+MISSION 3 - TASK 5
+STREAMING SPEED AND BOTTLENECK ANALYSIS
+
+Board: ESP32-S3
+Transport: USB COM8
+Baud rate: 921600
+Audio duration: 10 seconds
+Sampling rate: 16000 Hz
+
+FEATURES OFF:
+2x: PASS
+4x: PASS
+6x: PASS
+7x: PASS
+8x: FAIL
+
+Highest successful tested speed: 7x
+
+FEATURES ON:
+4x: PASS
+5x: FAIL
+6x: FAIL
+7x: FAIL
+
+Highest successful tested speed: 4x
+
+4x FEATURES ON:
+Expected frames: 499
+Received frames: 499
+Lost frames: 0
+Average compute time: 1787.19 us
+Maximum compute time: 2590 us
+Average lag: 0.009143 s
+Maximum lag: 0.012443 s
+CRC errors: 0
+
+5x FEATURES ON:
+Expected frames: 499
+Received frames: 395
+Lost frames: 104
+Average compute time: 2108.4 us
+Maximum compute time: 3558 us
+CRC errors: 52
+
+CONCLUSION:
+Feature extraction reduces the highest reliable tested
+streaming speed from 7x to 4x.
+
+The additional computation and feature-output workload
+increases pressure on the streaming pipeline. Packet
+loss and CRC errors indicate that reception is also
+affected.

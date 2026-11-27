@@ -1,0 +1,28 @@
+Mission 3 - Task 3
+Connection: Native USB (COM8)
+Baud rate: 921600
+Sampling frequency: 16000 Hz
+Audio duration: 10 seconds
+Window: 480
+Hop: 320
+FFT: 512
+Mel filters: 40
+Features: Enabled
+Speed: 1.0
+
+Expected frames: 499
+Received frames: 16
+Lost frames: 483
+
+Average compute time: 1863401.31 us
+Maximum compute time: 1911593 us
+Minimum compute time: 1855684 us
+
+Average lag: 15.765432 seconds
+Maximum lag: 29.55944 seconds
+
+Bad CRC packets: 0
+
+Conclusion:
+The ESP32-S3 cannot maintain real-time feature extraction
+with the current direct DFT implementation.
