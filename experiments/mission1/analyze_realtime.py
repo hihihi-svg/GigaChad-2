@@ -107,6 +107,7 @@ interface_labels = [
 
 formats = [
     (16000.0, "f32"),
+    (16000.0, "i16"),
     (16000.0, "i8"),
     (8000.0, "i16"),
     (8000.0, "i8")
@@ -114,6 +115,7 @@ formats = [
 
 format_labels = [
     "16 kHz float32",
+    "16 kHz int16",
     "16 kHz int8",
     "8 kHz int16",
     "8 kHz int8"

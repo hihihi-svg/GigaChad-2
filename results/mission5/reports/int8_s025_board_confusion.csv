@@ -1,0 +1,7 @@
+actual/predicted,on,off,stop,go,_unknown,_silence
+on,1,1,4,1,1,0
+off,0,1,7,0,0,0
+stop,0,0,7,0,1,0
+go,0,0,3,0,5,0
+_unknown,0,0,1,0,7,0
+_silence,0,0,0,0,0,8

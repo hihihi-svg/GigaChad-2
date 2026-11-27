@@ -14,7 +14,7 @@ import team_audio
 
 # Experiment configuration
 PORT = "COM9"
-BAUD = 115200
+BAUD = 921600
 TEAM = 11
 NUM_CLIPS = 1
 
@@ -28,6 +28,7 @@ FORMATS = [
     (16000, "i8"),
     (8000, "i16"),
     (8000, "i8"),
+    (16000, "i16")
 ]
 
 
@@ -128,7 +129,7 @@ def save_results(results):
     report_dir = ROOT / "results" / "reports"
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    output = report_dir / "hardware_measurements.csv"
+    output = report_dir / "mission1_missing_16k_i16_uart115200.csv"
 
     fieldnames = list(results[0].keys())
 
